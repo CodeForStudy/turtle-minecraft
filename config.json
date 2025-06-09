@@ -1,0 +1,26 @@
+{
+  "window_width": 800,
+  "window_height": 600,
+  "fov": 90,
+  "mouse_sens": 0.2,
+  "mouse_warp": true,
+  "render_distance": 5,
+  "outlines": false,
+  "hotkeys": {
+    "move_forward": "w",
+    "move_backward": "s",
+    "move_left": "a",
+    "move_right": "d",
+    "look_left": "Left",
+    "look_right": "Right",
+    "look_up": "Up",
+    "look_down": "Down",
+    "toggle_mode": "p",
+    "toggle_debug": "F3",
+    "toggle_pause": "Escape",
+    "increase_render_distance": "m",
+    "decrease_render_distance": "n",
+    "jump": "space",
+    "sprint": "Control_L"
+  }
+}
