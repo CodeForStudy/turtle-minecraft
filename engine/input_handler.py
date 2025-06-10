@@ -225,7 +225,9 @@ class InputHandler:
         block_pos, _ = self.renderer.get_looked_at_block(max_dist=4)
         if block_pos:
             # Entfernen des Blocks, Zurücksetzen der letzten Spielerposition, Animation
-            self.renderer.world.blocks = [b for b in self.renderer.world.blocks if (b.x, b.y, b.z) != block_pos]
+            self.renderer.world.change_block_at(block_pos[0], block_pos[1], block_pos[2], None)
+            
+            # update des caches
             self.renderer._last_player_pos = (None, None, None)
             self.renderer.trigger_hud_block_animation()
 
@@ -241,12 +243,12 @@ class InputHandler:
         # Wenn es Werte gibt
         if looked_at_block_pos and place_pos:
             px, py, pz = place_pos
-
+            
             # Wenn nicht schon ein Block dort ist
-            if not any(b.x == px and b.y == py and b.z == pz for b in self.renderer.world.blocks):
+            if self.renderer.world.get_block_at(px, py, pz) is None: #not any(b.x == px and b.y == py and b.z == pz for b in self.renderer.world.blocks):
                 # Berechnung der Entfernung
                 cam_x = self.player.x
-                cam_y = self.player.y + self.renderer.player_eye_height if self.player.mode == 'player' else self.player.y
+                cam_y = self.player.y + self.renderer.player_eye_height# if self.player.mode == 'player' else self.player.y
                 cam_z = self.player.z
                 
                 dist_to_cam = ((px - cam_x)**2 + (py - cam_y)**2 + (pz - cam_z)**2)**0.5
@@ -286,7 +288,9 @@ class InputHandler:
 
                     # Platzieren des Blocks
                     selected_block_type = self.renderer.get_selected_block_type()
-                    self.renderer.world.blocks.append(Block(px, py, pz, block_id=selected_block_type))
+                    self.renderer.world.change_block_at(px, py, pz, Block(px, py, pz, block_id=selected_block_type))
+
+                    # update des caches
                     self.renderer._last_player_pos = (None, None, None)
                     self.renderer.trigger_hud_block_animation()
     

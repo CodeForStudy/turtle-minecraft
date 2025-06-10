@@ -6,7 +6,11 @@ BLOCK_COLORS = {
     "dirt": (139, 69, 19),
     "grass": (0, 100, 0),
     "leaves": (50, 205, 50),
-    "log": (160, 82, 45)
+    "log": (160, 82, 45),
+
+    "blue": (51, 153, 255),
+    "red": (180, 0, 0),
+    "yellow": (255, 255, 0)
 }
 
 # Klasse für Blöcke, als Veranschaulichung und Sammlund der Funktionen

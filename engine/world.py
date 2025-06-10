@@ -103,6 +103,7 @@ class World:
         self.seed = seed
         self.path = path
         self.player_initial_state = None
+        self.world_size = None
 
         # laden oder generieren der Welt
         if path:
@@ -113,23 +114,30 @@ class World:
     def generate(self, world_size):
         if not world_size:
             world_size = [32,16,32]
-
+        
         # generieren eines Seeds wenn keiner gegeben
         actual_seed_for_generation = self.seed if self.seed is not None else random.randint(0, 2**32 - 1)
         world_array, self.seed = generate_world(world_size=world_size, seed=actual_seed_for_generation)
-            
         # Konvertieren des Numpy Arrays zu Blockobjekten
-        self.blocks = []
+        # self.blocks = []
         half_width = world_array.shape[0] // 2
         half_depth = world_array.shape[2] // 2
-        for x_idx in range(world_array.shape[0]):
-            for y_coord in range(world_array.shape[1]):
-                for z_idx in range(world_array.shape[2]):
-                    block_data = world_array[x_idx, y_coord, z_idx]
-                    if block_data is not None:
-                        world_x = x_idx - half_width
-                        world_z = z_idx - half_depth
-                        self.blocks.append(Block(world_x, y_coord, world_z, block_data["id"]))
+        # for x_idx in range(world_array.shape[0]):
+        #     for y_coord in range(world_array.shape[1]):
+        #         for z_idx in range(world_array.shape[2]):
+        #             block_data = world_array[x_idx, y_coord, z_idx]
+        #             if block_data is not None:
+        #                 world_x = x_idx - half_width
+        #                 world_z = z_idx - half_depth
+        #                 self.blocks.append(Block(world_x, y_coord, world_z, block_data["id"]))
+
+        # Erstellen  er Block-objekte
+        for x in range(world_array.shape[0]):
+            for y in range(world_array.shape[1]):
+                for z in range(world_array.shape[2]):
+                    if world_array[x, y, z]:
+                        world_array[x, y, z] = Block(x-half_width, y, z-half_depth, world_array[x,y,z]['id'])
+        self.blocks = world_array
             
         # Überprüfen des Weltordners
         if not os.path.exists("worlds"):
@@ -181,8 +189,15 @@ class World:
         self.world_name = metadata.get("world_name", os.path.splitext(os.path.basename(path))[0])
         self.seed = metadata.get("seed", None)
         self.player_initial_state = data.get("player_state", None)
+        world_size = data.get("world_size", [64,32,64])
         # Laden von Blockobjekten
-        self.blocks = [Block(b['x'], b['y'], b['z'], b.get('id', 'stone')) for b in data.get('blocks', [])]
+        self.blocks = np.full((world_size[0], world_size[1], world_size[2]), None, dtype=object)
+        half_width = self.blocks.shape[0] // 2
+        half_depth = self.blocks.shape[2] // 2
+        blocks_data = data.get('blocks', [])
+        for b in blocks_data:
+            self.blocks[b['x']+half_width, b['y'], b['z']+half_depth] = Block(b['x'], b['y'], b['z'], b.get('id', 'stone'))
+        # self.blocks = [Block(b['x'], b['y'], b['z'], b.get('id', 'stone')) for b in data.get('blocks', [])]
 
     # Speichern der Welt
     def save(self, path: Optional[str] = None, player_state: Optional[dict] = None):
@@ -200,13 +215,23 @@ class World:
         
         # Formatieren in JSON Format
         blocks_data = []
-        for block in self.blocks:
-            blocks_data.append({
-                "x": block.x,
-                "y": block.y,
-                "z": block.z,
-                "id": block.id
-            })
+        for x in range(self.blocks.shape[0]):
+            for y in range(self.blocks.shape[1]):
+                for z in range(self.blocks.shape[2]):
+                    if self.blocks[x, y, z]:
+                        blocks_data.append({
+                            "x": self.blocks[x, y, z].x,
+                            "y": self.blocks[x, y, z].y,
+                            "z": self.blocks[x, y, z].z,
+                            "id": self.blocks[x, y, z].id
+                        })
+        # for block in self.blocks:
+        #     blocks_data.append({
+        #         "x": block.x,
+        #         "y": block.y,
+        #         "z": block.z,
+        #         "id": block.id
+        #     })
         
         # hinzufügen von Metadaten
         last_saved_timestamp = datetime.now().isoformat()
@@ -216,7 +241,8 @@ class World:
                 "world_name": self.world_name,
                 "seed": self.seed,
                 "last_saved": last_saved_timestamp,
-                "version": "1.0"
+                "version": "1.0",
+                "world_size": list(self.blocks.shape)
             },
             "player_state": player_state if player_state else self.player_initial_state,
             "blocks": blocks_data
@@ -231,23 +257,47 @@ class World:
             print(f"Fehler beim Speichern der Welt {save_path}: {e}")
 
     # Ausgabe von Blöcken um einen Punkt herum
-    def get_blocks(self, player_x=None, player_y=None, player_z=None, render_distance=None):
+    def get_blocks(self, x=None, y=None, z=None, radius=None):
         # bei ungültigen Eingaben alle Blöcke ausgeben
-        if player_x is None or player_y is None or player_z is None or render_distance is None:
-            return self.blocks
+        if x is None or y is None or z is None or radius is None:
+            return list(self.blocks.reshape(-1))
+        
+        half_width = self.blocks.shape[0] // 2
+        half_depth = self.blocks.shape[2] // 2
+
+        # Begrenzung der Werte
+        def minmax(mi, val, ma):
+            return int(min(max(mi, val), ma))
+        
+        # Auflisten aller Blöcke im Radius
+        nearby_blocks = self.blocks[minmax(0, x+half_width-radius, self.blocks.shape[0]):minmax(0, x+half_width+radius, self.blocks.shape[0]),
+                                    minmax(0, y-radius, self.blocks.shape[1]):minmax(0, y+radius, self.blocks.shape[1]),
+                                    minmax(0, z+half_depth-radius, self.blocks.shape[2]):minmax(0, z+half_depth+radius, self.blocks.shape[2])]
+        nearby_blocks = nearby_blocks[nearby_blocks != np.array(None)]
 
         # Auflisten aller Blöcke im Radius
-        nearby_blocks = []
-        for block in self.blocks:
-            if abs(block.x - player_x) <= render_distance and \
-               abs(block.y - player_y) <= render_distance and \
-               abs(block.z - player_z) <= render_distance:
-                nearby_blocks.append(block)
-        return nearby_blocks
+        # for block in self.blocks:
+        #     if abs(block.x - player_x) <= render_distance and \
+        #        abs(block.y - player_y) <= render_distance and \
+        #        abs(block.z - player_z) <= render_distance:
+        #         nearby_blocks.append(block)
+        return list(nearby_blocks.reshape(-1))
 
     # Ausgabe eines gezielten Blocks
     def get_block_at(self, x, y, z):
-        for block in self.blocks:
-            if block.x == x and block.y == y and block.z == z:
-                return block
+        x, y, z = int(x), int(y), int(z)
+        half_width = self.blocks.shape[0] // 2
+        half_depth = self.blocks.shape[2] // 2
+        # Wenn die Position in der Welt existiert
+        if x+half_width in range(self.blocks.shape[0]) and y in range(self.blocks.shape[1]) and z+half_depth in range(self.blocks.shape[2]):
+            return self.blocks[x+half_width, y, z+half_depth]
         return None
+    
+    # Änderung eies gezielten Blocks
+    def change_block_at(self, x, y, z, val):
+        x, y, z = int(x), int(y), int(z)
+        half_width = self.blocks.shape[0] // 2
+        half_depth = self.blocks.shape[2] // 2
+        # Wenn die Position in der Welt existiert
+        if x+half_width in range(self.blocks.shape[0]) and y in range(self.blocks.shape[1]) and z+half_depth in range(self.blocks.shape[2]):
+            self.blocks[x+half_width, y, z+half_depth] = val

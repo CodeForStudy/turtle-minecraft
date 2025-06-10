@@ -17,6 +17,7 @@ class Renderer:
         self.pause_hotkey = self.config.get("hotkeys", {}).get("toggle_pause", "Escape")
         self.on_exit_to_main_menu = on_exit_to_main_menu
         self.outlines = self.config.get("outlines", False)
+        print(self.outlines)
 
         # Laden der Welt
         self.world = world
@@ -259,14 +260,16 @@ class Renderer:
 
     # Finden/Erzeugen der Spawnhöhe
     def find_spawn_y(self, x, z):
-        all_world_blocks = self.world.get_blocks()
+        height = self.world.blocks.shape[1]
         
-        column_blocks = [b for b in all_world_blocks if b.x == x and b.z == z]
+        column_blocks = list(self.world.blocks[int(x), 0:int(height), int(z)].reshape(-1))
+        column_blocks = [x for x in column_blocks if x is not None]
 
         max_y = -1
-        if column_blocks:
-            max_y = max(b.y for b in column_blocks)
+        if len(column_blocks) > 0:
+            max_y = max(b.y for b in column_blocks if b is not None)
         
+        # Überprüfen jeder Höhe
         for y_coord in range(max_y + 2, -2, -1):
             is_space_free = not any(b.y == y_coord for b in column_blocks)
             is_block_below = any(b.y == y_coord - 1 for b in column_blocks)
@@ -564,6 +567,9 @@ class Renderer:
         radius = self.render_distance
 
         visible_blocks = self.world.get_blocks(px, py, pz, radius)
+
+        # Frustum culling
+        visible_blocks = self.frustum_cull(visible_blocks)
         
         self._last_player_pos = current_rounded_pos
         self._last_player_yaw = current_rounded_yaw
@@ -572,6 +578,24 @@ class Renderer:
         self.block_set = set((b.x, b.y, b.z) for b in visible_blocks)
         # Ausgaeb
         return visible_blocks
+    
+    # Frustum culling
+    def frustum_cull(self, blocks:list):
+        win_w = self.screen.window_width()
+        win_h = self.screen.window_height()
+        margin = win_w * 0.3
+        culled_blocks = []
+
+        for b in blocks:
+            uv, dz = self.project(b.x, b.y, b.z)
+            u, v = uv
+            u += win_w/2
+            v += win_h/2
+            if (u > 0-margin and u < win_w+margin and v > 0-margin and v < win_h+margin) or dz < 1:
+                culled_blocks.append(b)
+
+        return culled_blocks
+    
 
     # Rendern der Welt
     def render(self, delta_time):
@@ -607,13 +631,14 @@ class Renderer:
             hex_color = f"#{shaded_color[0]:02x}{shaded_color[1]:02x}{shaded_color[2]:02x}"
             
             # Malen der Außenlinien
-            # Zeichnen wenn outlines erlaubt sind
-            if self.outlines:
-                self.t.pencolor("#1e1e1e")
             self.t.penup()
             self.t.goto(points[0][0], points[0][1])
             self.t.fillcolor(hex_color)
             self.t.begin_fill()
+            # Zeichnen wenn outlines erlaubt sind
+            if self.outlines:
+                self.t.pencolor("#1e1e1e")
+                self.t.pendown()
             for x, y in points[1:]:
                 self.t.goto(x, y)
             self.t.goto(points[0][0], points[0][1])
@@ -673,10 +698,11 @@ class Renderer:
 
     # Position des Angeschauten Blocks ermitteln
     def get_looked_at_block(self, max_dist=10, step=0.05):
-        if self.player.mode == 'player':
-            x, y, z = self.player.x, self.player.y + self.player_eye_height, self.player.z
-        else:
-            x, y, z = self.player.x, self.player.y, self.player.z
+        # if self.player.mode == 'player':
+        x, y, z = self.player.x, self.player.y + self.player_eye_height, self.player.z
+        # else:
+        #     x, y, z = self.player.x, self.player.y, self.player.z
+
         # Blickrichnung berechnen
         yaw = math.radians(self.player.yaw)
         pitch = math.radians(self.player.pitch)

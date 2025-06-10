@@ -267,11 +267,13 @@ class Player(Entity):
     
     # freie Höhe zum Zucücksetzen finden/erzeugen
     def _find_teleport_y(self, world, x, z):
-        blocks_at_xz = [b for b in world.get_blocks() if int(b.x) == int(x) and int(b.z) == int(z)]
+        height = world.blocks.shape[1]
+        blocks_at_xz = list(world.blocks[int(x), 0:int(height), int(z)].reshape(-1))
+        blocks_at_xz = [x for x in blocks_at_xz if x is not None]
         if blocks_at_xz:
             max_y_at_xz = max(b.y for b in blocks_at_xz)
             return max_y_at_xz + 1
         else:
             new_block = Block(x, 0, z)
-            world.blocks.append(new_block)
+            world.blocks.change_block_at(x, 0, z, new_block)
             return 1
