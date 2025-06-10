@@ -5,6 +5,8 @@ import os
 import json
 from datetime import datetime
 
+
+# Definitiion von Größen und Farben
 BUTTON_HOVER_COLOR = "lightgray"
 BUTTON_NORMAL_COLOR = "white"
 BUTTON_TEXT_COLOR = "black"

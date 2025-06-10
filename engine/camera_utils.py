@@ -1,5 +1,7 @@
 import math
+import numpy as np
 
+# Berechnung der Vektoren zur Rotation der kamera
 def get_camera_vectors(cam_yaw_degrees, cam_pitch_degrees):
     yaw_rad = math.radians(cam_yaw_degrees)
     pitch_rad = math.radians(cam_pitch_degrees)
@@ -18,21 +20,29 @@ def get_camera_vectors(cam_yaw_degrees, cam_pitch_degrees):
     
     return (fx, fy, fz), (rx, ry, rz), (ux, uy, uz)
 
+# Berechnung der Bildpunkte eines Punktes in der Welt 
 def project_point(world_x, world_y, world_z, 
                   cam_x, cam_y, cam_z, 
                   forward_vec, right_vec, up_vec, 
-                  projection_scale=200, min_depth=0.1):
+                  win_w, win_h,
+                  fov,  min_depth=0.1):
+    # Translation
     px, py, pz = world_x - cam_x, world_y - cam_y, world_z - cam_z
 
+    # Rotation
     dx = px * right_vec[0] + py * right_vec[1] + pz * right_vec[2]
     dy = px * up_vec[0] + py * up_vec[1] + pz * up_vec[2]
-    dz = px * forward_vec[0] + py * forward_vec[1] + pz * forward_vec[2]
+    dz = normal_dz = px * forward_vec[0] + py * forward_vec[1] + pz * forward_vec[2]
 
     if dz <= min_depth:
         dz = min_depth
 
-    factor = projection_scale / dz
-    screen_x = dx * factor
-    screen_y = dy * factor
+    # Skalierung der Projektion auf den Bildschirm
+    fov = math.radians(fov)
+    fy = (win_h / 2) / math.tan((fov) / 2)
+    fx = fy * (win_w / win_h)
+    screen_x = dx / dz * fx
+    screen_y = dy / dz * fy
     
-    return screen_x, screen_y
+    # Ausgabe Bildpunkte
+    return (screen_x, screen_y), normal_dz
