@@ -17,7 +17,6 @@ class Renderer:
         self.pause_hotkey = self.config.get("hotkeys", {}).get("toggle_pause", "Escape")
         self.on_exit_to_main_menu = on_exit_to_main_menu
         self.outlines = self.config.get("outlines", False)
-        print(self.outlines)
 
         # Laden der Welt
         self.world = world

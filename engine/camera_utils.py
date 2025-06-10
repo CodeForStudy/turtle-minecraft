@@ -42,7 +42,7 @@ def project_point(world_x, world_y, world_z,
     fy = (win_h / 2) / math.tan((fov) / 2)
     fx = fy * (win_w / win_h)
     screen_x = dx / dz * fx
-    screen_y = dy / dz * fy
+    screen_y = dy / dz * fx
     
     # Ausgabe Bildpunkte
     return (screen_x, screen_y), normal_dz

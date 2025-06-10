@@ -1,7 +1,7 @@
 {
   "window_width": 800,
   "window_height": 600,
-  "fov": 90,
+  "fov": 120,
   "mouse_sens": 0.2,
   "mouse_warp": true,
   "render_distance": 5,
