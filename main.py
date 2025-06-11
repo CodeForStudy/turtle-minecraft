@@ -31,11 +31,13 @@ join_menu_scroll_state = {
     "world_data_cache": []
 }
 
+# Initiierung der Menü Turtle
 menu_turtle = turtle.Turtle()
 menu_turtle.hideturtle()
 menu_turtle.speed(0)
 menu_turtle.penup()
 
+# Initiierung des Bildschirms
 screen = turtle.Screen()
 screen.setup(width=800, height=600)
 screen.title("3D Sandbox Game - Hauptmenü")
@@ -45,6 +47,7 @@ screen.tracer(0)
 buttons = []
 game_renderer_instance = None
 
+# Malen eines Buttons nach vorgaben
 def draw_button(text, x, y, width, height, color=BUTTON_NORMAL_COLOR, text_color=BUTTON_TEXT_COLOR, enabled=True):
     menu_turtle.goto(x - width / 2, y - height / 2)
     current_fill_color = color if enabled else "#cccccc"
@@ -65,10 +68,12 @@ def draw_button(text, x, y, width, height, color=BUTTON_NORMAL_COLOR, text_color
 def return_to_main_menu_from_game():
     global game_renderer_instance, screen
     
+    # Aufräumen
     if game_renderer_instance:
         game_renderer_instance.cleanup_for_main_menu()
         game_renderer_instance = None
 
+    # Keybinds lösen
     screen.onclick(None) 
     screen.getcanvas().unbind("<Motion>")
     keys_to_unbind = ["w", "a", "s", "d", "space", "Shift_L", "Control_L", "Tab", "q", "e", "f", "g", "r", "t", "Escape"]
@@ -77,10 +82,14 @@ def return_to_main_menu_from_game():
         screen.onkeyrelease(None, key)
     screen.listen()
 
+    # malen des Hauptmrnüs
     draw_main_menu()
 
+# Spiel starten
 def start_game(world_path=None, world_name=None, seed=None):
     global game_renderer_instance
+
+    # Keybinds lösen
     menu_turtle.clear()
     screen.onclick(None)
     screen.getcanvas().unbind("<Motion>")
@@ -89,6 +98,7 @@ def start_game(world_path=None, world_name=None, seed=None):
     screen.onkey(None, "Return")
     screen.bgcolor("white")
 
+    # Welt erstellen wenn nötig
     if world_path:
         world = World(path=world_path)
     elif world_name or seed is not None:
@@ -96,17 +106,22 @@ def start_game(world_path=None, world_name=None, seed=None):
     else:
         world = World(generate_new_size=[64, 32, 64])
         
+    # Renderer initiieren
     game_renderer_instance = Renderer(world=world, on_exit_to_main_menu=return_to_main_menu_from_game)
     
+# Welterstellungsbildschirm
 def prompt_world_creation_details():
+    # Menü löschen
     menu_turtle.clear()
     screen.update()
 
+    # Weltname
     world_name = screen.textinput("Weltname", "Namen für die neue Welt eingeben (optional):")
     if world_name is None:
         draw_main_menu()
         return
 
+    # Seed
     seed_str = screen.textinput("Seed", "Seed für die Weltengenerierung eingeben (optional, numerisch):")
     if seed_str is None:
         draw_main_menu()
@@ -118,14 +133,18 @@ def prompt_world_creation_details():
             final_seed = int(seed_str)
         except ValueError:
             pass
-
+    
+    # Bestätigungsmenü zeichnen
     draw_create_world_confirmation_menu(world_name, final_seed)
 
+# Bestätigungsmenü zeichnen
 def draw_create_world_confirmation_menu(world_name, seed):
+    # Aufräumen
     menu_turtle.clear()
     buttons.clear()
     screen.bgcolor("lightblue")
 
+    # Zeichnen
     menu_turtle.goto(0, 200)
     menu_turtle.color("black")
     menu_turtle.write("Welt erstellen: Bestätigung", align="center", font=("Arial", 24, "bold"))
@@ -149,19 +168,22 @@ def draw_create_world_confirmation_menu(world_name, seed):
     draw_button(btn_back_text, 0, btn_back_y, BUTTON_WIDTH, BUTTON_HEIGHT, color=BACK_BUTTON_COLOR, text_color="white")
     buttons.append({"text": btn_back_text, "x": 0, "y": btn_back_y, "width": BUTTON_WIDTH, "height": BUTTON_HEIGHT, "action": draw_main_menu, "color": BACK_BUTTON_COLOR, "hover_color": "darkgray"})
     
+    # update
     screen.update()
     screen.onclick(handle_menu_click)
     screen.getcanvas().bind("<Motion>", canvas_mouse_move_handler)
 
-
+# handler für Weltgeneration
 def create_world_action():
     prompt_world_creation_details()
 
+# handler für Beitrittsmenü
 def join_world_action():
     join_menu_scroll_state["offset"] = 0
     join_menu_scroll_state["world_data_cache"] = [] 
     draw_join_world_menu(refresh_cache=True)
 
+# Welltschaltfläche malen
 def draw_world_button(world_info, x, y, width, height, color=BUTTON_NORMAL_COLOR):
     menu_turtle.goto(x - width / 2, y - height / 2)
     menu_turtle.color(color)
@@ -197,13 +219,16 @@ def draw_world_button(world_info, x, y, width, height, color=BUTTON_NORMAL_COLOR
     menu_turtle.color(WORLD_BUTTON_DETAIL_COLOR)
     menu_turtle.write(last_saved_text, align="right", font=WORLD_BUTTON_DETAIL_FONT)
 
+# Weltbeitrittsmenü zeichnen
 def draw_join_world_menu(refresh_cache=True):
+    # Aufräumen
     menu_turtle.clear()
     buttons.clear()
     screen.bgcolor("lightblue")
 
     state = join_menu_scroll_state
 
+    # cache erneuern
     if refresh_cache:
         state["offset"] = 0
         state["world_data_cache"] = []
@@ -211,6 +236,7 @@ def draw_join_world_menu(refresh_cache=True):
         if not os.path.exists(worlds_dir):
             os.makedirs(worlds_dir)
         
+        # Iteration durch Welten
         world_files = [f for f in os.listdir(worlds_dir) if f.endswith(".json")]
         temp_world_data = []
         for world_file in world_files:
@@ -224,6 +250,7 @@ def draw_join_world_menu(refresh_cache=True):
                 last_saved_str = metadata.get("last_saved", "N/A")
                 
                 last_saved_dt = None
+                # Datumsformat
                 if last_saved_str != "N/A":
                     try:
                         last_saved_dt = datetime.fromisoformat(last_saved_str)
@@ -250,6 +277,7 @@ def draw_join_world_menu(refresh_cache=True):
             except Exception as e:
                 print(f"Fehler beim Laden der Welt-Metadaten {world_path}: {e}")
 
+        # Cache update
         state["world_data_cache"] = sorted(temp_world_data, key=lambda x: x["last_saved_dt"] if x["last_saved_dt"] else datetime.min, reverse=True)
     
     title_y = screen.window_height() / 2 - 50
@@ -277,6 +305,7 @@ def draw_join_world_menu(refresh_cache=True):
     can_scroll_up = state["offset"] > 0
     can_scroll_down = (state["offset"] + state["items_per_view"]) < len(state["world_data_cache"])
 
+    # Zeichnen der Scroll buttons
     if len(state["world_data_cache"]) > state["items_per_view"]:
         draw_button("Hoch", 0, scroll_button_y_top, SCROLL_BUTTON_WIDTH, SCROLL_BUTTON_HEIGHT, enabled=can_scroll_up)
         if can_scroll_up:
@@ -287,9 +316,11 @@ def draw_join_world_menu(refresh_cache=True):
             buttons.append({"text": "Runter", "x": 0, "y": scroll_button_y_bottom, "width": SCROLL_BUTTON_WIDTH, "height": SCROLL_BUTTON_HEIGHT, "action": lambda: scroll_join_menu(1), "color": BUTTON_NORMAL_COLOR, "hover_color": BUTTON_HOVER_COLOR})
 
     if not state["world_data_cache"]:
+        # Keine Welten
         menu_turtle.goto(0, list_area_top_y - list_area_height / 2)
         menu_turtle.write("Keine Welten gefunden.", align="center", font=("Arial", 16, "normal"))
     else:
+        # Erstellen der Button templates
         for i, world_info in enumerate(visible_worlds):
             btn_x = 0
             btn_y = list_area_top_y - (i * (WORLD_BUTTON_HEIGHT + BUTTON_PADDING)) - WORLD_BUTTON_HEIGHT / 2
@@ -307,10 +338,12 @@ def draw_join_world_menu(refresh_cache=True):
     draw_button("Zurück", 0, back_button_y, BUTTON_WIDTH, BUTTON_HEIGHT, color=BACK_BUTTON_COLOR, text_color="white")
     buttons.append({"text": "Zurück", "x": 0, "y": back_button_y, "width": BUTTON_WIDTH, "height": BUTTON_HEIGHT, "action": draw_main_menu, "color": BACK_BUTTON_COLOR, "hover_color": "darkgray"})
 
+    # update und keybinds
     screen.update()
     screen.onclick(handle_menu_click)
     screen.getcanvas().bind("<Motion>", canvas_mouse_move_handler)
 
+# Scroll funtion
 def scroll_join_menu(direction):
     state = join_menu_scroll_state
     num_total_items = len(state["world_data_cache"])
@@ -325,15 +358,19 @@ def scroll_join_menu(direction):
     
     draw_join_world_menu(refresh_cache=False)
 
+# Hauptmenü malen
 def draw_main_menu():
+    # Aufräumen
     menu_turtle.clear()
     buttons.clear()
     screen.bgcolor("lightblue")
 
+    # Titel, Hintergrund, Startposition
     menu_turtle.goto(0, 200)
     menu_turtle.color("black")
     menu_turtle.write("3D Sandbox Game", align="center", font=("Arial", 30, "bold"))
 
+    # Buttons malen
     button_y_start = 50
     button_spacing = BUTTON_HEIGHT + BUTTON_PADDING
 
@@ -347,6 +384,7 @@ def draw_main_menu():
     draw_button(btn_join_text, 0, btn_join_y, BUTTON_WIDTH, BUTTON_HEIGHT)
     buttons.append({"text": btn_join_text, "x": 0, "y": btn_join_y, "width": BUTTON_WIDTH, "height": BUTTON_HEIGHT, "action": join_world_action, "color": BUTTON_NORMAL_COLOR, "hover_color": BUTTON_HOVER_COLOR})
 
+    # Version
     version_text = "v1"
     version_x = -screen.window_width() / 2 + 10
     version_y = -screen.window_height() / 2 + 10
@@ -355,6 +393,7 @@ def draw_main_menu():
     menu_turtle.color("black")
     menu_turtle.write(version_text, align="left", font=("Arial", 12, "normal"))
 
+    # Credits
     credits_text = "Timon Scheuer 10/2, Julian Kern 10/2"
     credits_x = screen.window_width() / 2 - 10
     credits_y = -screen.window_height() / 2 + 10
@@ -363,11 +402,12 @@ def draw_main_menu():
     menu_turtle.color("black")
     menu_turtle.write(credits_text, align="right", font=("Arial", 12, "normal"))
 
+    # Update
     screen.update()
     screen.onclick(handle_menu_click)
     screen.getcanvas().bind("<Motion>", canvas_mouse_move_handler)
 
-
+# Handler für Klicks
 def handle_menu_click(x, y):
     for button in buttons:
         btn_x, btn_y, width, height = button["x"], button["y"], button["width"], button["height"]
@@ -378,6 +418,7 @@ def handle_menu_click(x, y):
                 button["action"]()
             break
 
+# Hovereffekte, Mausaktionen
 def handle_mouse_move(x, y):
     redraw_needed = False
     for button in buttons:
@@ -405,13 +446,14 @@ def handle_mouse_move(x, y):
     if redraw_needed:
         screen.update()
 
+# Handler für Mausbewegung
 def canvas_mouse_move_handler(event):
     canvas = screen.getcanvas()
     x = event.x - canvas.winfo_width() / 2
     y = canvas.winfo_height() / 2 - event.y
     handle_mouse_move(x,y)
 
-
+# Start des Hauptmenüüs
 if __name__ == "__main__":
     draw_main_menu()
     turtle.done()
