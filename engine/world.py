@@ -35,6 +35,7 @@ def generate_world(world_size: list, seed: Optional[int]=None, scale=30.0, heigh
     indizes = np.argsort(-treemap.reshape(-1))[:amount_trees]
     tree_xz_coords = np.unravel_index(indizes, (world_size[0], world_size[2]))
     tree_xz_coords = np.concatenate( [tree_xz_coords[0].reshape(-1,1), tree_xz_coords[1].reshape(-1,1)], axis=1)
+    print(tree_xz_coords)
 
     # Iteration durch jede Achse
     for x_coord in range(world_size[0]):
@@ -82,14 +83,14 @@ def generate_world(world_size: list, seed: Optional[int]=None, scale=30.0, heigh
                      if world_array[leaf_x_idx, leaf_y2_idx, leaf_z_idx] is None or world_array[leaf_x_idx, leaf_y2_idx, leaf_z_idx]["id"] != "log":
                         world_array[leaf_x_idx, leaf_y2_idx, leaf_z_idx] = {"id": "leaves"}
   
-        for tree_x_idx, tree_z_idx in tree_xz_coords:
-          if 0 <= tree_x_idx < heightmap.shape[0] and 0 <= tree_z_idx < heightmap.shape[1]:
-              surface_y_idx = heightmap[tree_x_idx, tree_z_idx]
-              tree_y_idx = surface_y_idx + 1
+    for tree_x_idx, tree_z_idx in tree_xz_coords:
+        if 0 <= tree_x_idx < heightmap.shape[0] and 0 <= tree_z_idx < heightmap.shape[1]:
+            surface_y_idx = heightmap[tree_x_idx, tree_z_idx]
+            tree_y_idx = surface_y_idx + 1
 
         if world_array[tree_x_idx, surface_y_idx, tree_z_idx] is not None and \
-           world_array[tree_x_idx, surface_y_idx, tree_z_idx]["id"] == "grass" and \
-           tree_y_idx < world_size[1] - 5:
+            world_array[tree_x_idx, surface_y_idx, tree_z_idx]["id"] == "grass" and \
+            tree_y_idx < world_size[1] - 5:
             generate_tree_at_pos(np.array([tree_x_idx, tree_y_idx, tree_z_idx]))
 
     return world_array, seed
